@@ -9,10 +9,10 @@ services:
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD","curl", "-f","http://localhost:8080/health"]
-      interval: 1m
-      timeout: 10s
-      retries: 3
+        test: ["CMD","curl", "-f","http://localhost:8080/health"]
+        interval: 1m
+        timeout: 10s
+        retries: 3
   wiremock1:
     image: "wiremock/wiremock:latest"
     container_name: routing_wiremock_1

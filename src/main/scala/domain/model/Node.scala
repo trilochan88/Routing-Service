@@ -1,52 +1,43 @@
 package com.ts
 package domain.model
 
+import common.enums.SlownessStatus.Normal
 import common.enums.{HealthStatus, SlownessStatus}
 
-import com.ts.common.enums.SlownessStatus.Normal
-
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 trait NodeStatusSubscriber {
-  def updateHealth(node: Node, healthStatus: HealthStatus): Unit
-  def updateSlowNess(node: Node,slownessStatus: SlownessStatus): Unit
+  def updateHealth(node: Node, healthStatus: HealthStatus): Future[Unit]
+  def updateSlowness(node: Node, slownessStatus: SlownessStatus): Future[Unit]
 }
-
-class Node(
-            val url: String,
-            private var healthStatus: HealthStatus = HealthStatus.Healthy,
-            private var slownessStatus: SlownessStatus = Normal
+/**
+ * Contain
+ */
+case class Node(
+   url: String,
+   healthStatus: HealthStatus = HealthStatus.Healthy,
+   slownessStatus: SlownessStatus = Normal,
+   subscribers: List[NodeStatusSubscriber] = List.empty[NodeStatusSubscriber]
 ) {
-  private var subscribers: List[NodeStatusSubscriber] = Nil
 
-  def getHealthStatus(): HealthStatus = healthStatus
-
-  def getSlownessStatus(): SlownessStatus = slownessStatus
-
-
-  def attach(subscriber: NodeStatusSubscriber): Unit = {
-    subscribers = subscriber :: subscribers
+  def attach(subscriber: NodeStatusSubscriber): Node = {
+    this.copy(subscribers =  subscriber :: subscribers)
   }
 
-  def detach(subscriber: NodeStatusSubscriber): Unit = {
-    subscribers = subscribers.filterNot(_ == subscriber)
+  def detach(subscriber: NodeStatusSubscriber): Node = {
+    this.copy(subscribers = subscribers.filterNot(_ == subscriber))
   }
 
-  def setHealth(status: HealthStatus): Unit = this.synchronized {
-    healthStatus = status
-    publishHealthStatusToSubscribers()
+  def setHealth(status: HealthStatus): Future[Node] = {
+    val updatedNode = this.copy(healthStatus = status)
+    Future.sequence(subscribers.map(_.updateHealth(updatedNode,status)))
+      .map(_ ⇒ updatedNode)
   }
 
-  def setSlowStatus(status: SlownessStatus): Unit = this.synchronized {
-    slownessStatus = status
-    publishSlownessStatusToSubscribers()
+  def setSlowStatus(status: SlownessStatus): Unit =  {
+    val updatedNode = this.copy(slownessStatus = status)
+    Future.sequence(subscribers.map(_.updateSlowness(updatedNode, status)))
+      .map(_ ⇒ updatedNode)
   }
-
-  private def publishHealthStatusToSubscribers(): Unit = {
-    subscribers.foreach(_.updateHealth(this, getHealthStatus()))
-  }
-
-  private def publishSlownessStatusToSubscribers():Unit = {
-    subscribers.foreach(_.updateSlowNess(this,getSlownessStatus()))
-  }
-
 
 }

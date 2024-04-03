@@ -1,4 +1,5 @@
 package com.ts
 package common.exceptions
 
-class ExternalHttpFailedException(message: String,throwable: Throwable) extends Exception(message, throwable) {}
+class ExternalHttpFailedException(message: String, throwable: Throwable)
+    extends Exception(message, throwable) {}

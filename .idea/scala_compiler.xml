@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
-    <profile name="sbt 1" modules="ExternalService" />
-    <profile name="sbt 2" modules="RoutingService">
+    <profile name="sbt 1" modules="RoutingService">
       <parameters>
         <parameter value="-Ytasty-reader" />
       </parameters>

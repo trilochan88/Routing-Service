@@ -6,20 +6,24 @@ import domain.model.{Node, NodeStatusSubscriber}
 
 import org.slf4j.LoggerFactory
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 class MonitoringService extends NodeStatusSubscriber {
   private val logger = LoggerFactory.getLogger(getClass)
-  override def updateHealth(node: Node, healthStatus: HealthStatus): Unit = {
-    (node.getHealthStatus(), healthStatus) match {
-      case (HealthStatus.Healthy, HealthStatus.NotHealthy) =>  logger.error(s"Node ${node.url} is not healthy")
-      case (HealthStatus.NotHealthy, HealthStatus.Healthy) => logger.info(s"Node ${node.url} is healthy")
-      case _ =>
-    }
+
+  override def updateHealth(
+    node: Node,
+    healthStatus: HealthStatus
+  ): Future[Unit] = Future {
+    logger.info(s"send health status to APM service ${node.url}: $healthStatus")
   }
 
-  override def updateSlowNess(node: Node, slownessStatus: SlownessStatus): Unit = {
-    (node.getSlownessStatus(), slownessStatus) match
-      case (SlownessStatus.Slow, SlownessStatus.Normal) ⇒ logger.info(s"Node ${node.url} is normal now")
-      case (SlownessStatus.Normal, SlownessStatus.Slow) ⇒ logger.error(s"Node ${node.url} is slow")
-      case _ ⇒
+  override def updateSlowness(
+    node: Node,
+    slownessStatus: SlownessStatus
+  ): Future[Unit] = Future {
+    logger.info(
+      s"send slowness status to APM service ${node.url}: $SlownessStatus"
+    )
   }
 }

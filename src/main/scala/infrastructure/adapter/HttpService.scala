@@ -16,22 +16,30 @@ trait HttpService {
 }
 
 class AkkaHttpService(circuitBreakerManager: CircuitBreakerManager)(implicit
-    val system: ActorSystem,
-    executionContext: ExecutionContext
+  val system: ActorSystem,
+  executionContext: ExecutionContext
 ) extends HttpService {
 
   private val logger = LoggerFactory.getLogger(getClass)
-  override def sendRequest(node: Node, request: HttpRequest): Future[HttpResponse] = {
+  override def sendRequest(
+    node: Node,
+    request: HttpRequest
+  ): Future[HttpResponse] = {
     val circuitBreaker = circuitBreakerManager.getBreakerForNode(node)
-    if(IsNotHealthyEndpoint(request)){
-      logger.info(s"routing request to ${request.getUri} HealthStatus = ${node.getHealthStatus()} slowness = ${node.getSlownessStatus()}")
+    if (IsNotHealthyEndpoint(request)) {
+      logger.info(s"routing request to ${request.getUri} HealthStatus = ${node
+          .healthStatus} slowness = ${node.slownessStatus}")
     }
     val responseFuture =
-      circuitBreaker.withCircuitBreaker(Http()(system.classicSystem).singleRequest(request))
+      circuitBreaker.withCircuitBreaker(
+        Http()(system.classicSystem).singleRequest(request)
+      )
     responseFuture
       .recoverWith { case ex =>
         logger.error(s"Endpoint failed with ${ex.getMessage}")
-        Future.failed(new ExternalHttpFailedException(s"Request failed for ${node.url}",ex))
+        Future.failed(
+          new ExternalHttpFailedException(s"Request failed for ${node.url}", ex)
+        )
       }
   }
 

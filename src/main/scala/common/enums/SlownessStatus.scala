@@ -1,5 +1,5 @@
 package com.ts
 package common.enums
 
-enum SlownessStatus :
+enum SlownessStatus:
   case Slow, Normal

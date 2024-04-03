@@ -1,72 +1,72 @@
 {
-	"info": {
-		"_postman_id": "6d1c5dfe-f223-4cce-9d40-60ef7b78da9d",
-		"name": "Routing-Service",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "2827099"
-	},
-	"item": [
-		{
-			"name": "NormalEndpoint",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"game\":\"Mobile Legends\",\n\t\"gamerID\": \"GYUTDTE\",\n\t\"points\":20\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:8080/update-points",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"update-points"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "update-points-delay",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Client-Type",
-						"value": "Delay",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"game\":\"Mobile\",\n\t\"gamerID\": \"GYUTDTE\",\n\t\"points\":20\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:8080/update-points-delay",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"update-points-delay"
-					]
-				}
-			},
-			"response": []
-		}
-	]
+  "info": {
+    "_postman_id": "6d1c5dfe-f223-4cce-9d40-60ef7b78da9d",
+    "name": "Routing-Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "2827099"
+  },
+  "item": [
+    {
+      "name": "NormalEndpoint",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n\t\"game\":\"Mobile Legends\",\n\t\"gamerID\": \"GYUTDTE\",\n\t\"points\":20\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/update-points",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "update-points"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "update-points-delay",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Client-Type",
+            "value": "Delay",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n\t\"game\":\"Mobile\",\n\t\"gamerID\": \"GYUTDTE\",\n\t\"points\":20\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/update-points-delay",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "update-points-delay"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
 }

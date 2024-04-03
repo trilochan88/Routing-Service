@@ -1,6 +1,6 @@
 package com.ts
 
-import application.controller.RoutingController
+import application.controller.{HealthCheckController, RoutingController}
 import application.service.RoutingService
 import domain.model.Node
 import domain.service.{PostRequestHandler, RequestHandler, RoundRobinStrategy, RoutingStrategy}
@@ -9,6 +9,7 @@ import infrastructure.config.{CircuitBreakerConfig, HealthConfig}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
 import com.typesafe.config.ConfigFactory
 
@@ -19,6 +20,12 @@ object Main extends App {
   implicit val system: ActorSystem = ActorSystem("routing-service")
   implicit val executionContext: ExecutionContextExecutor = system.getDispatcher
   private val rootConfigs = ConfigFactory.load()
+  val nodes: Seq[Node] = rootConfigs
+    .getStringList("routing-service.application-instances")
+    .toArray()
+    .toSeq
+    .map(_.toString)
+    .map(url ⇒ Node(url))
   /*val nodes =
     Seq(Node("http://localhost:9000"), Node("http://localhost:9001"), Node("http://localhost:9002"))*/
   private val circuitBreakerConfig: CircuitBreakerConfig = CircuitBreakerConfig(
@@ -27,27 +34,33 @@ object Main extends App {
   private val healthConfig: HealthConfig = HealthConfig(
     rootConfigs.getConfig("routing-service.health-service")
   )
-  val nodes: Seq[Node] = rootConfigs
-    .getStringList("routing-service.application-instances")
-    .toArray()
-    .toSeq
-    .map(_.toString)
-    .map(url ⇒ Node(url))
-  private val circuitBreakerManager: CircuitBreakerManager = CircuitBreakerManager(
-    circuitBreakerConfig
+  private val circuitBreakerManager: CircuitBreakerManager =
+    CircuitBreakerManager(circuitBreakerConfig)
+  private val httpServiceAdapter: HttpService = AkkaHttpService(
+    circuitBreakerManager
   )
-  private val httpServiceAdapter: HttpService = AkkaHttpService(circuitBreakerManager)
-  private val requestHandler: RequestHandler = PostRequestHandler(httpServiceAdapter)
+  private val requestHandler: RequestHandler = PostRequestHandler(
+    httpServiceAdapter
+  )
   private val routingStrategy: RoutingStrategy = RoundRobinStrategy()
-  private val routingService: RoutingService = RoutingService(routingStrategy, nodes)
+  private val routingService: RoutingService =
+    RoutingService(routingStrategy, nodes)
   private val monitoringService = MonitoringService()
   nodes.foreach(_.attach(routingService))
   nodes.foreach(_.attach(monitoringService))
   private val healthService = new HealthService(healthConfig, nodes)
   healthService.startChecking()
   private val routes: Route =
-    RoutingController(routingService, requestHandler)(system, executionContext).routes
-  private val bindingFuture = Http().newServerAt("localhost", 8080).bind(routes)
+    RoutingController(routingService, requestHandler)(
+      system,
+      executionContext
+    ).routes ~ HealthCheckController().routes
+  private val bindingFuture =
+    Http().newServerAt("localhost", 8080).bind(routes).recover {
+      case ex: Exception ⇒
+        println(s"Failed to bind to 0.0.0.0:8080 because: ${ex.getMessage}")
+        system.terminate()
+    }
 
   println(s"Server is up at http://localhost:8080/\n")
   StdIn.readLine()

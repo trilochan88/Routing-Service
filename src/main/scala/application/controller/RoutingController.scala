@@ -11,27 +11,31 @@ import akka.http.scaladsl.server.Route
 
 import scala.concurrent.ExecutionContext
 
-class RoutingController(routingService: RoutingService, requestHandler: RequestHandler)(implicit val system: ActorSystem, executionContext: ExecutionContext) {
+class RoutingController(
+  routingService: RoutingService,
+  requestHandler: RequestHandler
+)(implicit val system: ActorSystem, executionContext: ExecutionContext) {
   def routes: Route = {
-    extractRequest {
-      request =>
-        request.method match {
-          case HttpMethods.GET => complete(StatusCodes.MethodNotAllowed)
-          case HttpMethods.POST => extractRequestEntity {
-            entity => {
-              routingService.getNextServer match
-                case Left(ex) => complete(StatusCodes.BadGateway, ex.getMessage)
-                case Right(node) => {
+    extractRequest { request =>
+      request.method match {
+        case HttpMethods.POST =>
+          extractRequestEntity { entity =>
+            {
+              routingService.getNextNode match
+                case Left(ex) => complete(StatusCodes.ServiceUnavailable, ex.getMessage)
+                case Right(node) =>
                   onComplete(requestHandler.handle(request, entity, node)) {
                     case util.Success(response) => complete(response)
-                    case util.Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+                    case util.Failure(ex) =>
+                      complete(
+                        StatusCodes.GatewayTimeout,
+                        s"An error occurred: ${ex.getMessage}"
+                      )
                   }
-                }
-
             }
           }
-          case _ => complete(StatusCodes.MethodNotAllowed)
-        }
+        case _ => complete(StatusCodes.MethodNotAllowed)
+      }
     }
   }
 }

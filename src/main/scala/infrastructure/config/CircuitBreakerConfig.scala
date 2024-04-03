@@ -5,9 +5,9 @@ import com.typesafe.config.Config
 
 import scala.concurrent.duration.*
 case class CircuitBreakerConfig(
-    maxFailures: Int,
-    callTimeout: FiniteDuration,
-    resetTimeout: FiniteDuration
+  maxFailures: Int,
+  callTimeout: FiniteDuration,
+  resetTimeout: FiniteDuration
 )
 
 object CircuitBreakerConfig {

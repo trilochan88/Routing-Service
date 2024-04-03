@@ -1,38 +1,64 @@
 package com.ts
 package domain.service
 
+import common.enums.{HealthStatus, SlownessStatus}
 import domain.model.Node
 
-import com.ts.common.enums.HealthStatus
 import org.mockito.Mockito.when
+import org.scalatest.OptionValues
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 
-class RoutingStrategySpec extends AsyncFlatSpec with Matchers with MockitoSugar {
-  "RoundRobinStrategy" should "cycle through healthyServers in a round-robin manner" in {
+class RoutingStrategySpec
+    extends AsyncFlatSpec
+    with Matchers
+      with OptionValues
+    with MockitoSugar {
+  "RoundRobinStrategy" should "select nodes in a round-robin manner when all nodes are healthy" in {
     val nodes = Seq(
-      mock[Node],
-      mock[Node],
-      mock[Node]
+      Node("Node1", HealthStatus.Healthy, SlownessStatus.Normal),
+      Node("Node2", HealthStatus.Healthy, SlownessStatus.Normal),
+      Node("Node3", HealthStatus.Healthy, SlownessStatus.Normal)
     )
-    when(nodes(0).getHealthStatus()).thenReturn(HealthStatus.Healthy)
-    when(nodes(1).getHealthStatus()).thenReturn(HealthStatus.NotHealthy)
-    when(nodes(2).getHealthStatus()).thenReturn(HealthStatus.Healthy)
 
     val strategy = new RoundRobinStrategy()
 
-    strategy.selectServer(nodes) shouldEqual Some(nodes(0))
-    strategy.selectServer(nodes) shouldEqual Some(nodes(2))
-    strategy.selectServer(nodes) shouldEqual Some(nodes(0))
+    strategy.selectNextNode(nodes).value shouldEqual nodes(0)
+    strategy.selectNextNode(nodes).value shouldEqual nodes(1)
+    strategy.selectNextNode(nodes).value shouldEqual nodes(2)
   }
 
-  it should "return None if there are no healthy nodes" in {
-    val unhealthyServers = Seq(mock[Node])
-    when(unhealthyServers.head.getHealthStatus()).thenReturn(HealthStatus.NotHealthy)
+it should "skip unhealthy and slow nodes" in {
+  val nodes = Seq(
+    Node("Node1", HealthStatus.NotHealthy, SlownessStatus.Normal),
+    Node("Node2", HealthStatus.Healthy, SlownessStatus.Slow),
+    Node("Node3", HealthStatus.Healthy, SlownessStatus.Normal)
+  )
 
+  val strategy = new RoundRobinStrategy()
+  strategy.selectNextNode(nodes).value shouldEqual nodes(2)
+  strategy.selectNextNode(nodes).value shouldEqual nodes(2)
+}
+  it should "return None when no nodes are healthy" in {
+    val nodes = Seq(
+      Node("Node1", HealthStatus.NotHealthy, SlownessStatus.Normal),
+      Node("Node2", HealthStatus.NotHealthy, SlownessStatus.Normal)
+    )
     val strategy = new RoundRobinStrategy()
 
-    strategy.selectServer(unhealthyServers) shouldEqual None
+    strategy.selectNextNode(nodes) shouldBe None
   }
+
+  it should "return None when all nodes are slow" in {
+    val nodes = Seq(
+      Node("Node1", HealthStatus.Healthy, SlownessStatus.Slow),
+      Node("Node2", HealthStatus.Healthy, SlownessStatus.Slow)
+    )
+    val strategy = new RoundRobinStrategy()
+
+    strategy.selectNextNode(nodes) shouldBe None
+  }
+
+
 }

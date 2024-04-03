@@ -21,8 +21,8 @@ class RoutingControllerSpec
 
   "RoutingController" should {
     "reject non-POST requests with MethodNotAllowed" in {
-      val mockRoutingService = mock[RoutingService]
-      val requestHandler = mock[RequestHandler]
+      val mockRoutingService                = mock[RoutingService]
+      val requestHandler                    = mock[RequestHandler]
       implicit val httpService: HttpService = mock[HttpService]
       val controller = new RoutingController(mockRoutingService, requestHandler)
 
@@ -32,10 +32,10 @@ class RoutingControllerSpec
     }
 
     "respond with BadGateway when no healthy nodes are available" in {
-      val mockRoutingService = mock[RoutingService]
+      val mockRoutingService                = mock[RoutingService]
       implicit val httpService: HttpService = mock[HttpService]
-      val requestHandler = mock[RequestHandler]
-      when(mockRoutingService.getNextServer).thenReturn(
+      val requestHandler                    = mock[RequestHandler]
+      when(mockRoutingService.getNextNode).thenReturn(
         Left(new NoHealthyNodeException("No healthy nodes available"))
       )
       val controller = new RoutingController(mockRoutingService, requestHandler)
@@ -44,7 +44,7 @@ class RoutingControllerSpec
         "/api",
         HttpEntity(ContentTypes.`application/json`, """{"data":"test"}""")
       ) ~> controller.routes ~> check {
-        status shouldBe StatusCodes.BadGateway
+        status shouldBe StatusCodes.ServiceUnavailable
         responseAs[String] should include("No healthy nodes available")
       }
     }

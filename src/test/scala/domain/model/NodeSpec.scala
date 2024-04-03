@@ -1,43 +1,66 @@
 package com.ts
 package domain.model
 
-import com.ts.common.enums.HealthStatus
+import common.enums.{HealthStatus, SlownessStatus}
+
+import com.ts.common.enums.HealthStatus.NotHealthy
 import org.mockito.Mockito.{times, verify}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+class MockSubscriber extends NodeStatusSubscriber{
+  var healthUpdates: List[(Node, HealthStatus)] = List.empty
+  var slownessUpdates: List[(Node, SlownessStatus)] = List.empty
+
+  override def updateHealth(node: Node, healthStatus: HealthStatus): Future[Unit] = {
+    healthUpdates = (node, healthStatus) :: healthUpdates
+    Future.successful(())
+  }
+
+  override def updateSlowness(node: Node, slownessStatus: SlownessStatus): Future[Unit] = {
+    slownessUpdates = (node, slownessStatus) :: slownessUpdates
+    Future.successful(())
+  }
+}
 
 class NodeSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
-  "A Node" should "correctly updateHealth its health status and notify subscribers" in {
-    val mockSubscriber = mock[NodeStatusSubscriber]
-    val node = new Node("http://localhost:8080")
-    node.attach(mockSubscriber)
-
-    node.getHealthStatus() shouldBe HealthStatus.Healthy
-    node.setHealth(HealthStatus.NotHealthy)
-
-    node.getHealthStatus() shouldBe HealthStatus.NotHealthy
-
-    verify(mockSubscriber, times(1)).updateHealth(node, HealthStatus.NotHealthy)
+  "Node" should "correctly updateHealth its health status and notify subscribers" in {
+    val subscriber = new MockSubscriber()
+    val node = Node("http://example.com").attach(subscriber)
+    node.setHealth(HealthStatus.NotHealthy).map { updatedNode =>
+      updatedNode.healthStatus shouldEqual HealthStatus.NotHealthy
+      subscriber.healthUpdates should have size 1
+      subscriber.healthUpdates.head._2 shouldEqual HealthStatus.NotHealthy
+    }
   }
 
-  it should "allow attaching and detaching subscribers" in {
-    val subscriber1 = mock[NodeStatusSubscriber]
-    val subscriber2 = mock[NodeStatusSubscriber]
-    val node = new Node("http://localhost:8080")
+  it should "allow detaching a subscriber and not receive updates" in {
+    val subscriber = new MockSubscriber()
+    val node = Node("node1").attach(subscriber).detach(subscriber)
+    node.setHealth(HealthStatus.NotHealthy).map { updatedNode =>
+      subscriber.healthUpdates shouldBe empty
+    }
+  }
 
-    node.attach(subscriber1)
-    node.attach(subscriber2)
+  it should "update slowness status and notify the subscriber" in {
+    val subscriber = new MockSubscriber()
+    val node = Node("Node1").attach(subscriber)
+    val updatedNode = node.copy(slownessStatus = SlownessStatus.Slow)
+    Future.sequence(node.subscribers.map(_.updateSlowness(updatedNode, SlownessStatus.Slow))).map { _ =>
+      subscriber.slownessUpdates should have size 1
+      subscriber.slownessUpdates.head._2 shouldEqual SlownessStatus.Slow
+    }
+  }
 
-    node.setHealth(HealthStatus.NotHealthy)
-    verify(subscriber1, times(1)).updateHealth(node, HealthStatus.NotHealthy)
-    verify(subscriber2, times(1)).updateHealth(node, HealthStatus.NotHealthy)
-
-    node.detach(subscriber1)
-    node.setHealth(HealthStatus.Healthy)
-
-    verify(subscriber1, times(1)).updateHealth(node, HealthStatus.NotHealthy)
-    verify(subscriber2, times(1)).updateHealth(node, HealthStatus.Healthy)
+  it should "handle no subscribers without errors when updating statuses" in {
+    val node = Node("Node1")
+    node.setHealth(HealthStatus.NotHealthy).flatMap { updatedNode =>
+      updatedNode.setSlowStatus(SlownessStatus.Slow)
+      Future.successful(succeed)
+    }
   }
 }

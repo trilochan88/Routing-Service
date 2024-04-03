@@ -1,12 +1,12 @@
 package com.ts
 package infrastructure.adapter
 
+import common.enums.SlownessStatus.Slow
 import domain.model.Node
 import infrastructure.config.CircuitBreakerConfig
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
-import com.ts.common.enums.SlownessStatus.Slow
 import org.mockito.Mockito.verify
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -29,10 +29,15 @@ class CircuitBreakerManagerSpec
   "getBreakerForNode" should {
     "create a new circuit breaker for a new node" in {
       val circuitBreakerConfig =
-        CircuitBreakerConfig(maxFailures = 1, callTimeout = 1.seconds, resetTimeout = 1.minute)
-      val circuitBreakerManager = new CircuitBreakerManager(circuitBreakerConfig)
+        CircuitBreakerConfig(
+          maxFailures = 1,
+          callTimeout = 1.seconds,
+          resetTimeout = 1.minute
+        )
+      val circuitBreakerManager =
+        new CircuitBreakerManager(circuitBreakerConfig)
 
-      val node = Node("http://localhost:8080")
+      val node    = Node("http://localhost:8080")
       val breaker = circuitBreakerManager.getBreakerForNode(node)
 
       breaker should not be (null)
@@ -45,9 +50,10 @@ class CircuitBreakerManagerSpec
           callTimeout = 1.nanoseconds,
           resetTimeout = 50.millisecond
         )
-      val circuitBreakerManager = new CircuitBreakerManager(circuitBreakerConfig)
+      val circuitBreakerManager =
+        new CircuitBreakerManager(circuitBreakerConfig)
 
-      val node = mock[Node]
+      val node           = mock[Node]
       val circuitBreaker = circuitBreakerManager.getBreakerForNode(node)
 
       val failingOperation = () =>
@@ -55,7 +61,8 @@ class CircuitBreakerManagerSpec
           throw new RuntimeException("Simulated failure")
         }
 
-      val attempts = (1 to 5).map(_ => circuitBreaker.withCircuitBreaker(failingOperation()))
+      val attempts =
+        (1 to 5).map(_ => circuitBreaker.withCircuitBreaker(failingOperation()))
 
       Future
         .sequence(attempts)

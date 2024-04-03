@@ -8,35 +8,71 @@ import domain.service.RoutingStrategy
 
 import org.slf4j.LoggerFactory
 
-class RoutingService(routingStrategy: RoutingStrategy, nodes: Seq[Node]) extends NodeStatusSubscriber {
+import java.util.concurrent.atomic.AtomicReference
+import scala.annotation.tailrec
+import scala.collection.immutable
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+class RoutingService(routingStrategy: RoutingStrategy, initialNodes: Seq[Node])
+    extends NodeStatusSubscriber {
   private val logger = LoggerFactory.getLogger(getClass)
-  def getNextServer: Either[NoHealthyNodeException, Node] = {
-    routingStrategy.selectServer(nodes) match
-      case Some(server) => Right(server)
-      case None => 
-        logger.error(s"No health nodes available from the list ${nodes.map(_.url)}")
-        Left(new NoHealthyNodeException("No healthy nodes available to handle this request"))
+  private[application] val nodes: AtomicReference[Seq[Node]] =
+    new AtomicReference[immutable.Seq[Node]](initialNodes.toVector)
+  def getNextNode: Either[NoHealthyNodeException, Node] = {
+    val currentNodes = nodes.get()
+    routingStrategy.selectNextNode(currentNodes) match
+      case Some(node) => Right(node)
+      case None =>
+        logger.error(
+          s"No health nodes available from the list of size ${currentNodes.length}"
+        )
+        Left(
+          new NoHealthyNodeException(
+            "No healthy nodes available to handle this request"
+          )
+        )
   }
 
-  private def checkAndSetHealthyStatusOfNodes(node: Node, healthStatus: HealthStatus): Unit = {
-    nodes.find(_.url == node.url).foreach { node =>
-      (node.getHealthStatus(), healthStatus) match {
-        case (HealthStatus.Healthy, HealthStatus.NotHealthy) => node.setHealth(healthStatus)
-        case (HealthStatus.NotHealthy, HealthStatus.Healthy) => node.setHealth(healthStatus)
-        case _ =>
-      }
+  override def updateHealth(
+    node: Node,
+    healthStatus: HealthStatus
+  ): Future[Unit] =
+    Future {
+      updateNodeConditionally(
+        nodes,
+        _.url == node.url,
+        _.copy(healthStatus = healthStatus)
+      )
+    }.recover { case e: Exception ⇒
+      logger.error("Failed to update node status for health")
     }
+
+  override def updateSlowness(
+    node: Node,
+    slownessStatus: SlownessStatus
+  ): Future[Unit] = Future {
+    updateNodeConditionally(
+      nodes,
+      _.url == node.url,
+      _.copy(slownessStatus = slownessStatus)
+    )
+  }.recover { case e: Exception ⇒
+    logger.error("Failed to update node status for slowness")
   }
-  private def checkAndSetSlowNessStatusOfNodes(node: Node, slownessStatus: SlownessStatus):Unit = {
-    nodes.find(_.url == node.url).foreach{
-      node ⇒ (node.getSlownessStatus(),slownessStatus) match
-        case (SlownessStatus.Slow,SlownessStatus.Normal)⇒ node.setSlowStatus(slownessStatus)
-        case (SlownessStatus.Normal,SlownessStatus.Slow)⇒ node.setSlowStatus(slownessStatus)
-        case _ ⇒
+
+  private def updateNodeConditionally(
+    nodes: AtomicReference[Seq[Node]],
+    predicate: Node ⇒ Boolean,
+    update: Node ⇒ Node
+  ) = {
+    @tailrec
+    def attemptUpdate(): Unit = {
+      val currentNodes = nodes.get()
+      val updateNodes =
+        currentNodes.map(node ⇒ if (predicate(node)) update(node) else node)
+      if (!nodes.compareAndSet(currentNodes, updateNodes)) attemptUpdate()
     }
+    attemptUpdate()
   }
-
-  override def updateHealth(node: Node, healthStatus: HealthStatus): Unit =  checkAndSetHealthyStatusOfNodes(node, healthStatus)
-
-  override def updateSlowNess(node: Node, slownessStatus: SlownessStatus): Unit = checkAndSetSlowNessStatusOfNodes(node, slownessStatus)
 }
