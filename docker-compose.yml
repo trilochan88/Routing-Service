@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  routing-service:
+    container_name: routing_service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+  wiremock1:
+    image: "wiremock/wiremock:latest"
+    container_name: routing_wiremock_1
+    ports:
+      - "9000:8080"
+    volumes:
+        - ./wiremock/mappings:/home/wiremock/mappings
+        - ./wiremock/__files:/home/wiremock/__files
+    command: --verbose
+  wiremock2:
+    image: "wiremock/wiremock:latest"
+    container_name: routing_wiremock_2
+    ports:
+      - "9001:8080"
+    volumes:
+        - ./wiremock/mappings:/home/wiremock/mappings
+        - ./wiremock/__files:/home/wiremock/__files
+    command: --verbose
+  wiremock3:
+    image: "wiremock/wiremock:latest"
+    container_name: routing_wiremock_3
+    ports:
+      - "9002:8080"
+    volumes:
+        - ./wiremock/mappings:/home/wiremock/mappings
+        - ./wiremock/__files:/home/wiremock/__files
+    command: --verbose

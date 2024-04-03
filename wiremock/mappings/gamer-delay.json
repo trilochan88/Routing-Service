@@ -1,0 +1,32 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/update-points-delay",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json"
+      },
+      "Client-Type": {
+        "equalTo": "Delay"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": "{\"game\":\"Mobile\", \"gamerID\":\"GYUTDTE\", \"points\":20}",
+        "ignoreExtraElements": true
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "game": "Mobile",
+      "gamerID": "GYUTDTE",
+      "points": 20
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "fixedDelayMilliseconds": 6000
+  }
+}
