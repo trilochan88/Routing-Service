@@ -10,17 +10,20 @@ import domain.service.RoutingStrategy
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import org.scalatest.EitherValues
+import org.scalatest.{EitherValues, OptionValues}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
-import scala.concurrent.duration._
-import scala.concurrent.Await
+
+import scala.concurrent.duration.*
+import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RoutingServiceSpec
     extends AnyFlatSpec
     with Matchers
     with MockitoSugar
+      with OptionValues
     with EitherValues {
   "RoutingService" should "return the next node if one is available" in {
     val mockRoutingStrategy = mock[RoutingStrategy]
@@ -66,5 +69,16 @@ class RoutingServiceSpec
 
     Await.result(service.updateSlowness(nonExistentNode, Slow), 1.seconds)
     service.nodes.get() should contain only initialNode
+  }
+
+  it should "handle concurrent update without data races" in {
+    val nodes = Seq(Node("test1",NotHealthy),Node("test2",NotHealthy))
+    val service = new RoutingService(mock[RoutingStrategy],nodes)
+
+    val updates = (1 to 100).map{
+      _ ⇒ service.updateHealth(nodes.headOption.value, Healthy)
+    }
+    Await.result(Future.sequence(updates), 2.seconds)
+    service.nodes.get().count(_.healthStatus == Healthy) should be (1)
   }
 }
