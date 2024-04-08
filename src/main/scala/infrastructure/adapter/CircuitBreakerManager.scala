@@ -43,14 +43,14 @@ class CircuitBreakerManager(
     logger.error(
       s"CircuitBreaker notifyWhenOpened notify slow for maybeNode ${node.toString}"
     )
-    nodeManager.updateSlowness(node.url, Slow)
+    nodeManager.updateNodeSlowness(node.url, Slow)
   }
 
   private def notifyWhenClosed(node: Node): Unit = {
     logger.info(
       s"CircuitBreaker NotifyWhenClosed notify normal for maybeNode ${node.toString}"
     )
-    nodeManager.updateSlowness(node.url, Normal)
+    nodeManager.updateNodeSlowness(node.url, Normal)
   }
 
   private def notifyWhenHalfOpen(node: Node): Unit =

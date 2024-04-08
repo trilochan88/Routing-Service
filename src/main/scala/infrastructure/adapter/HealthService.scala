@@ -20,7 +20,7 @@ import scala.concurrent.duration.*
  * @param nodes - list of configured servers
  * @param system
  */
-class HealthService(healthConfig: HealthConfig, nodeManager: NodeManager, nodes: Seq[Node])(implicit
+class HealthService(healthConfig: HealthConfig, nodeManager: NodeManager)(implicit
   system: ActorSystem
 ) {
   private val logger: Logger = LoggerFactory.getLogger(getClass)
@@ -32,7 +32,7 @@ class HealthService(healthConfig: HealthConfig, nodeManager: NodeManager, nodes:
       initialDelay = 0.seconds,
       healthConfig.interval
     ) { () =>
-      nodes.foreach(checkHealth)
+      nodeManager.getNodes.foreach(checkHealth)
     }
   }
 
@@ -46,14 +46,14 @@ class HealthService(healthConfig: HealthConfig, nodeManager: NodeManager, nodes:
       .map {
         case HttpResponse(StatusCodes.OK, _, _, _) =>
           logger.info(s"Node is healthy ${node.url}")
-          nodeManager.updateHealth(node.url, Healthy)
+          nodeManager.updateNodeHealth(node.url, Healthy)
         case _ =>
           logger.error(s"Node is not healthy ${node.url}")
-          nodeManager.updateHealth(node.url,NotHealthy)
+          nodeManager.updateNodeHealth(node.url,NotHealthy)
       }
       .recover { case ex =>
         logger.error(s"Node ${node.url} is not healthy due to ${ex.getMessage}")
-        nodeManager.updateHealth(node.url,NotHealthy)
+        nodeManager.updateNodeHealth(node.url,NotHealthy)
       }
   }
 }
