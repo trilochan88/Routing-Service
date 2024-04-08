@@ -33,6 +33,11 @@ class RoutingService(routingStrategy: RoutingStrategy, initialNodes: Seq[Node])
         )
   }
 
+  /**
+   * This code can be refactored and move to node manager and node manager can be single source of truth, during my review
+   * @param maybeNode
+   * @param healthStatus
+   */
   override def updateHealth(
     maybeNode: Option[Node],
     healthStatus: HealthStatus

@@ -50,8 +50,6 @@ g
 7src/test/scala/domain/service/RoutingStrategySpec.scala,e/6/e6ad92dbeed8cdb9ac6ba9fe71bf91ff0abcbb76
 c
 3src/main/scala/domain/service/RoutingStrategy.scala,e/5/e5b3171dfb3583032ad665b207d3306571f864e4
-Z
-*src/test/scala/domain/model/NodeSpec.scala,d/7/d76d4b51e0b0ba676f53e5ebf5c81d5a4be737c2
 q
 Asrc/test/scala/application/controller/RoutingControllerSpec.scala,0/6/0691faa9de2bb3fd881f804409ea9513e9f17304
 o
@@ -71,11 +69,9 @@ a
 :
 
 .gitignore,a/5/a5cc2925ca8258af241be7e5b0381edf30266302
-]
--src/main/scala/domain/model/NodeManager.scala,0/4/04044bc5df5a9c257eb8750a4b5af7690f477644
 _
 /src/main/scala/domain/service/NodeManager.scala,7/2/72ce0d905863be922f2f3f54c8c0d61ad61a8227
-\
-,src/test/scala/domain/service/NodeSpec.scala,8/c/8ccd20d215cd8c7a346b4862c0c7c2a829845f57
 c
 3src/test/scala/domain/service/NodeManagerSpec.scala,f/2/f29bb17f4814571d08535985d6e806c07db9f472
+g
+7src/main/scala/infrastructure/config/HealthConfig.scala,2/2/2235f56709c0d6893f633ac72d315ab2fdc7131a
