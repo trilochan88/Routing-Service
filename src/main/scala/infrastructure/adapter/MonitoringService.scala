@@ -11,7 +11,7 @@ class MonitoringService extends NodeStatusSubscriber {
     node: Option[Node],
     healthStatus: HealthStatus
   ): Unit =  {
-    logger.info(s"send health status to APM service ${node.map(_.url)}: $healthStatus")
+    logger.info(s"send health status to APM service ${node}: $healthStatus")
   }
 
   override def updateSlowness(
@@ -19,7 +19,7 @@ class MonitoringService extends NodeStatusSubscriber {
     slownessStatus: SlownessStatus
   ): Unit =  {
     logger.info(
-      s"send slowness status to APM service ${node.map(_.url)}: $SlownessStatus"
+      s"send slowness status to APM service ${node}: $SlownessStatus"
     )
   }
 }

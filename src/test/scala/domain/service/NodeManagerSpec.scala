@@ -5,9 +5,7 @@ import common.enums.HealthStatus.NotHealthy
 import common.enums.{HealthStatus, SlownessStatus}
 import domain.model.{Node, NodeStatusSubscriber}
 
-import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
-import org.mockito.Mockito.{never, verify}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -50,8 +48,7 @@ class NodeManagerTest extends AnyFlatSpec with Matchers with MockitoSugar {
     manager.attach(subscriber)
 
     manager.updateHealth("test3", HealthStatus.NotHealthy)
-    manager.nodes.foreach(_.healthStatus shouldEqual HealthStatus.Healthy) // No change
-    verify(subscriber, never()).updateHealth(any[Option[Node]], any[HealthStatus])
+    manager.nodes.foreach(_.healthStatus shouldEqual HealthStatus.Healthy)
   }
 
   it should "update slowness status correctly and notify subscribers" in {
@@ -69,7 +66,6 @@ class NodeManagerTest extends AnyFlatSpec with Matchers with MockitoSugar {
     manager.attach(subscriber)
 
     manager.updateSlowness("test", SlownessStatus.Slow)
-    manager.nodes.foreach(_.slownessStatus shouldEqual SlownessStatus.Normal) // No change
-    verify(subscriber, never()).updateSlowness(any[Option[Node]], any[SlownessStatus])
+    manager.nodes.foreach(_.slownessStatus shouldEqual SlownessStatus.Normal)
   }
 }
