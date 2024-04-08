@@ -26,7 +26,7 @@ lazy val root = (project in file("."))
       case _                                   => MergeStrategy.first
     },
     inConfig(IntegrationTest)(Defaults.testSettings),
-    IntegrationTest / scalaSource := baseDirectory.value,
+    IntegrationTest / scalaSource       := baseDirectory.value,
     IntegrationTest / resourceDirectory := baseDirectory.value,
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-slf4j"          % AkkaVersion,
@@ -39,6 +39,8 @@ lazy val root = (project in file("."))
       "ch.qos.logback"     % "logback-classic"     % logbackVersion,
       "org.slf4j"          % "slf4j-api"           % slf4jVersion,
       "org.scalatest"     %% "scalatest"           % scalaTestVersion % Test,
-      "org.scalatestplus" %% "mockito-5-10"        % "3.2.18.0"       % Test
+      "org.scalatestplus" %% "mockito-5-10"        % "3.2.18.0"       % Test,
+      "com.softwaremill.sttp.client3" %% "core" % "3.9.2" % "it,test",
+      "com.softwaremill.sttp.client3" %% "async-http-client-backend-future" % "3.9.2" % "it,test"
     )
   )

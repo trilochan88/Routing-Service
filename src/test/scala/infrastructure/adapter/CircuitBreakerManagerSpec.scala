@@ -7,7 +7,8 @@ import infrastructure.config.CircuitBreakerConfig
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
-import org.mockito.Mockito.verify
+import com.ts.domain.service.NodeManager
+import org.mockito.Mockito.{times, verify}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{BeforeAndAfterAll, Inspectors}
@@ -27,7 +28,8 @@ class CircuitBreakerManagerSpec
   override def afterAll(): Unit = TestKit.shutdownActorSystem(system)
 
   "getBreakerForNode" should {
-    "create a new circuit breaker for a new node" in {
+    "create a new circuit breaker for a new maybeNode" in {
+      val mockNodeManager = mock[NodeManager]
       val circuitBreakerConfig =
         CircuitBreakerConfig(
           maxFailures = 1,
@@ -35,7 +37,7 @@ class CircuitBreakerManagerSpec
           resetTimeout = 1.minute
         )
       val circuitBreakerManager =
-        new CircuitBreakerManager(circuitBreakerConfig)
+        new CircuitBreakerManager(circuitBreakerConfig, mockNodeManager)
 
       val node    = Node("http://localhost:8080")
       val breaker = circuitBreakerManager.getBreakerForNode(node)
@@ -44,6 +46,7 @@ class CircuitBreakerManagerSpec
     }
     "open after 5 failures" in {
       implicit val executionContext = system.dispatcher
+      val mockNodeManager = mock[NodeManager]
       val circuitBreakerConfig =
         CircuitBreakerConfig(
           maxFailures = 1,
@@ -51,9 +54,9 @@ class CircuitBreakerManagerSpec
           resetTimeout = 50.millisecond
         )
       val circuitBreakerManager =
-        new CircuitBreakerManager(circuitBreakerConfig)
+        new CircuitBreakerManager(circuitBreakerConfig,mockNodeManager)
 
-      val node           = mock[Node]
+      val node           = Node("test1")
       val circuitBreaker = circuitBreakerManager.getBreakerForNode(node)
 
       val failingOperation = () =>
@@ -75,7 +78,7 @@ class CircuitBreakerManagerSpec
           succeed
         }
 
-      verify(node).setSlowStatus(Slow)
+      verify(mockNodeManager.updateSlowness("test1",Slow),times(1))
     }
   }
 }

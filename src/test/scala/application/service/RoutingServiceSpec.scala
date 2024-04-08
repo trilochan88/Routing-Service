@@ -10,14 +10,10 @@ import domain.service.RoutingStrategy
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import org.scalatest.{EitherValues, OptionValues}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.{EitherValues, OptionValues}
 import org.scalatestplus.mockito.MockitoSugar
-
-import scala.concurrent.duration.*
-import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class RoutingServiceSpec
     extends AnyFlatSpec
@@ -25,7 +21,7 @@ class RoutingServiceSpec
     with MockitoSugar
       with OptionValues
     with EitherValues {
-  "RoutingService" should "return the next node if one is available" in {
+  "RoutingService" should "return the next maybeNode if one is available" in {
     val mockRoutingStrategy = mock[RoutingStrategy]
     val healthyNode = Node("http://localhost:8080", HealthStatus.Healthy, Normal)
     val nodes       = Seq(healthyNode)
@@ -39,7 +35,7 @@ class RoutingServiceSpec
     result shouldEqual Right(healthyNode)
   }
 
-  it should "return NoHealthyNodeException when no healthy node is available" in {
+  it should "return NoHealthyNodeException when no healthy maybeNode is available" in {
     val mockRoutingStrategy = mock[RoutingStrategy]
     val nodes =
       Seq(
@@ -54,21 +50,21 @@ class RoutingServiceSpec
     result.left.value shouldBe a[NoHealthyNodeException]
   }
 
- it should "fail to update the health status when the node does not exist" in {
+ it should "fail to update the health status when the maybeNode does not exist" in {
    val initialNode = Node("localhost:0000",Healthy,Normal)
    val nonExistentNode = Node("localhost:9001",Healthy,Normal)
    val service = new RoutingService(mock[RoutingStrategy], Seq(initialNode))
 
-   Await.result(service.updateHealth(nonExistentNode,NotHealthy),1.seconds)
-   service.nodes.get() should contain only initialNode
+   service.updateHealth(Some(nonExistentNode), NotHealthy)
+   service.nodes.get().values.toSeq should contain only initialNode
  }
-  it should "fail to update the slowness status when the node does not exist" in {
+  it should "fail to update the slowness status when the maybeNode does not exist" in {
     val initialNode = Node("localhost:9001", Healthy, Normal)
     val nonExistentNode = Node("localhost:0000", Healthy, Normal)
     val service = new RoutingService(mock[RoutingStrategy], Seq(initialNode))
 
-    Await.result(service.updateSlowness(nonExistentNode, Slow), 1.seconds)
-    service.nodes.get() should contain only initialNode
+    service.updateSlowness(Some(nonExistentNode), Slow)
+    service.nodes.get().values.toSeq should contain only initialNode
   }
 
   it should "handle concurrent update without data races" in {
@@ -76,9 +72,8 @@ class RoutingServiceSpec
     val service = new RoutingService(mock[RoutingStrategy],nodes)
 
     val updates = (1 to 100).map{
-      _ ⇒ service.updateHealth(nodes.headOption.value, Healthy)
+      _ ⇒ service.updateHealth(nodes.headOption, Healthy)
     }
-    Await.result(Future.sequence(updates), 2.seconds)
-    service.nodes.get().count(_.healthStatus == Healthy) should be (1)
+    service.nodes.get().get("test1").count(_.healthStatus == Healthy) should be (1)
   }
 }

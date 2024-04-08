@@ -53,7 +53,7 @@ client, maintaining a streamlined and efficient communication pipeline.
 * Once Circuit breaker will open, it will remove the API server from request which are slow
 * chose Normal POST - http://localhost:8080/update-points after 1 minute or any configuration circuit will close and
   service will start responding normally
-* If we want to target specific node, we can modify wiremock endpoints
+* If we want to target specific maybeNode, we can modify wiremock endpoints
 
 ## Other part for future consideration
 

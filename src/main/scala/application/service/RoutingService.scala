@@ -11,21 +11,20 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.immutable
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 class RoutingService(routingStrategy: RoutingStrategy, initialNodes: Seq[Node])
     extends NodeStatusSubscriber {
   private val logger = LoggerFactory.getLogger(getClass)
-  private[application] val nodes: AtomicReference[Seq[Node]] =
-    new AtomicReference[immutable.Seq[Node]](initialNodes.toVector)
+  private[application] val nodes: AtomicReference[Map[String, Node]] =
+    new AtomicReference(initialNodes.map(node => node.url -> node).toMap)
   def getNextNode: Either[NoHealthyNodeException, Node] = {
     val currentNodes = nodes.get()
-    routingStrategy.selectNextNode(currentNodes) match
+    logger.info(s"Current nodes = ${currentNodes.toString()}")
+    routingStrategy.selectNextNode(currentNodes.values.toSeq) match
       case Some(node) => Right(node)
       case None =>
         logger.error(
-          s"No health nodes available from the list of size ${currentNodes.length}"
+          s"No health nodes available from the list of size ${currentNodes.size}"
         )
         Left(
           new NoHealthyNodeException(
@@ -35,44 +34,69 @@ class RoutingService(routingStrategy: RoutingStrategy, initialNodes: Seq[Node])
   }
 
   override def updateHealth(
-    node: Node,
+    maybeNode: Option[Node],
     healthStatus: HealthStatus
-  ): Future[Unit] =
-    Future {
-      updateNodeConditionally(
-        nodes,
-        _.url == node.url,
-        _.copy(healthStatus = healthStatus)
-      )
-    }.recover { case e: Exception ⇒
-      logger.error("Failed to update node status for health")
-    }
+  ): Unit = {
+    maybeNode match
+      case Some(node) ⇒ {
+        logger.info(
+          s"Attempting to update health status for maybeNode with URL ${node.url}"
+        )
+        updateNodeConditionally(
+          nodes,
+          node.url,
+          _.copy(healthStatus = healthStatus)
+        )
+      }
+      case _ ⇒ logger.error("No maybeNode found")
+
+  }
 
   override def updateSlowness(
-    node: Node,
+    maybeNode: Option[Node],
     slownessStatus: SlownessStatus
-  ): Future[Unit] = Future {
-    updateNodeConditionally(
-      nodes,
-      _.url == node.url,
-      _.copy(slownessStatus = slownessStatus)
-    )
-  }.recover { case e: Exception ⇒
-    logger.error("Failed to update node status for slowness")
+  ): Unit = {
+    maybeNode match
+      case Some(node) ⇒ {
+        logger.info(
+          s"Attempting to update slowness status for maybeNode with URL ${node.url} to $slownessStatus"
+        )
+        updateNodeConditionally(
+          nodes,
+          node.url,
+          _.copy(slownessStatus = slownessStatus)
+        )
+      }
+      case None ⇒ logger.error("No maybeNode found")
   }
 
   private def updateNodeConditionally(
-    nodes: AtomicReference[Seq[Node]],
-    predicate: Node ⇒ Boolean,
-    update: Node ⇒ Node
-  ) = {
+    nodes: AtomicReference[Map[String, Node]],
+    url: String,
+    update: Node => Node
+  ): Unit = {
     @tailrec
     def attemptUpdate(): Unit = {
       val currentNodes = nodes.get()
-      val updateNodes =
-        currentNodes.map(node ⇒ if (predicate(node)) update(node) else node)
-      if (!nodes.compareAndSet(currentNodes, updateNodes)) attemptUpdate()
+      currentNodes.get(url) match {
+        case Some(node) =>
+          val updatedNode  = update(node)
+          val updatedNodes = currentNodes.updated(url, updatedNode)
+
+          if (!nodes.compareAndSet(currentNodes, updatedNodes)) {
+            logger.info(
+              "Failed to update due to concurrent modification, retrying..."
+            )
+            attemptUpdate()
+          } else {
+            logger.info(s"Node updated successfully: $updatedNode")
+          }
+
+        case None =>
+          logger.warn(s"No maybeNode found with URL $url to update")
+      }
     }
+
     attemptUpdate()
   }
 }

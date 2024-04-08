@@ -3,6 +3,7 @@ package infrastructure.adapter
 
 import common.enums.SlownessStatus.{Normal, Slow}
 import domain.model.Node
+import domain.service.NodeManager
 import infrastructure.config.CircuitBreakerConfig
 
 import akka.actor.ActorSystem
@@ -11,18 +12,16 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class CircuitBreakerManager(circuitBreakerConfig: CircuitBreakerConfig)(implicit
-  system: ActorSystem
-) {
+class CircuitBreakerManager(
+  circuitBreakerConfig: CircuitBreakerConfig,
+  nodeManager: NodeManager
+)(implicit system: ActorSystem) {
   private val logger = LoggerFactory.getLogger(getClass)
   private val nodeCircuitBreakers
     : scala.collection.mutable.Map[String, CircuitBreaker] =
     scala.collection.mutable.Map()
 
   def getBreakerForNode(node: Node): CircuitBreaker = {
-    if (nodeCircuitBreakers.contains(node.url)) {
-      logger.info(s"Existing circuitBreaker ${node.url}")
-    }
     val circuitBreaker =
       nodeCircuitBreakers.getOrElseUpdate(node.url, createNewBreaker(node))
     circuitBreaker
@@ -41,13 +40,17 @@ class CircuitBreakerManager(circuitBreakerConfig: CircuitBreakerConfig)(implicit
   }
 
   private def notifyWhenOpened(node: Node): Unit = {
-    logger.error("CircuitBreaker notifyWhenOpened")
-    node.setSlowStatus(Slow)
+    logger.error(
+      s"CircuitBreaker notifyWhenOpened notify slow for maybeNode ${node.toString}"
+    )
+    nodeManager.updateSlowness(node.url, Slow)
   }
 
   private def notifyWhenClosed(node: Node): Unit = {
-    logger.info("CircuitBreaker NotifyWhenClosed")
-    node.setSlowStatus(Normal)
+    logger.info(
+      s"CircuitBreaker NotifyWhenClosed notify normal for maybeNode ${node.toString}"
+    )
+    nodeManager.updateSlowness(node.url, Normal)
   }
 
   private def notifyWhenHalfOpen(node: Node): Unit =

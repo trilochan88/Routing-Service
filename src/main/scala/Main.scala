@@ -3,7 +3,7 @@ package com.ts
 import application.controller.{HealthCheckController, RoutingController}
 import application.service.RoutingService
 import domain.model.Node
-import domain.service.{PostRequestHandler, RequestHandler, RoundRobinStrategy, RoutingStrategy}
+import domain.service.*
 import infrastructure.adapter.*
 import infrastructure.config.{CircuitBreakerConfig, HealthConfig}
 
@@ -19,13 +19,14 @@ import scala.io.StdIn
 object Main extends App {
   implicit val system: ActorSystem = ActorSystem("routing-service")
   implicit val executionContext: ExecutionContextExecutor = system.getDispatcher
-  private val rootConfigs = ConfigFactory.load()
+  private val rootConfigs                                 = ConfigFactory.load()
   val nodes: Seq[Node] = rootConfigs
     .getStringList("routing-service.application-instances")
     .toArray()
     .toSeq
     .map(_.toString)
     .map(url ⇒ Node(url))
+  val nodeManager = new NodeManager(nodes)
   /*val nodes =
     Seq(Node("http://localhost:9000"), Node("http://localhost:9001"), Node("http://localhost:9002"))*/
   private val circuitBreakerConfig: CircuitBreakerConfig = CircuitBreakerConfig(
@@ -35,7 +36,7 @@ object Main extends App {
     rootConfigs.getConfig("routing-service.health-service")
   )
   private val circuitBreakerManager: CircuitBreakerManager =
-    CircuitBreakerManager(circuitBreakerConfig)
+    CircuitBreakerManager(circuitBreakerConfig, nodeManager)
   private val httpServiceAdapter: HttpService = AkkaHttpService(
     circuitBreakerManager
   )
@@ -46,15 +47,16 @@ object Main extends App {
   private val routingService: RoutingService =
     RoutingService(routingStrategy, nodes)
   private val monitoringService = MonitoringService()
-  nodes.foreach(_.attach(routingService))
-  nodes.foreach(_.attach(monitoringService))
-  private val healthService = new HealthService(healthConfig, nodes)
+  nodeManager.attach(routingService)
+  nodeManager.attach(monitoringService)
+  private val healthService =
+    new HealthService(healthConfig, nodeManager, nodes)
   healthService.startChecking()
-  private val routes: Route =
+  private val routes: Route = HealthCheckController().routes ~
     RoutingController(routingService, requestHandler)(
       system,
       executionContext
-    ).routes ~ HealthCheckController().routes
+    ).routes
   private val bindingFuture =
     Http().newServerAt("localhost", 8080).bind(routes).recover {
       case ex: Exception ⇒

@@ -9,6 +9,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes, Uri}
 import akka.http.scaladsl.settings.ConnectionPoolSettings
+import com.ts.domain.service.NodeManager
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.*
@@ -19,7 +20,7 @@ import scala.concurrent.duration.*
  * @param nodes - list of configured servers
  * @param system
  */
-class HealthService(healthConfig: HealthConfig, nodes: Seq[Node])(implicit
+class HealthService(healthConfig: HealthConfig, nodeManager: NodeManager, nodes: Seq[Node])(implicit
   system: ActorSystem
 ) {
   private val logger: Logger = LoggerFactory.getLogger(getClass)
@@ -45,14 +46,14 @@ class HealthService(healthConfig: HealthConfig, nodes: Seq[Node])(implicit
       .map {
         case HttpResponse(StatusCodes.OK, _, _, _) =>
           logger.info(s"Node is healthy ${node.url}")
-          node.setHealth(Healthy)
+          nodeManager.updateHealth(node.url, Healthy)
         case _ =>
           logger.error(s"Node is not healthy ${node.url}")
-          node.setHealth(NotHealthy)
+          nodeManager.updateHealth(node.url,NotHealthy)
       }
       .recover { case ex =>
         logger.error(s"Node ${node.url} is not healthy due to ${ex.getMessage}")
-        node.setHealth(NotHealthy)
+        nodeManager.updateHealth(node.url,NotHealthy)
       }
   }
 }

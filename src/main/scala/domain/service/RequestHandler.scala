@@ -17,7 +17,7 @@ trait RequestHandler {
   ): Future[HttpResponse]
 }
 
-/** Post Request Handler - Creating and routing to valid node
+/** Post Request Handler - Creating and routing to valid maybeNode
   * @param httpService
   * @param system
   */
@@ -29,7 +29,8 @@ class PostRequestHandler(httpService: HttpService)(implicit
     entity: RequestEntity,
     node: Node
   ): Future[HttpResponse] = {
-    val forwardUri = Uri(node.url).withPath(Uri.Path(request.getUri.path()))
+
+    val forwardUri = Uri(node.url).withPath(Uri.Path(request.getUri.path().replace("/ext","")))
     httpService.sendRequest(
       node,
       HttpRequest(

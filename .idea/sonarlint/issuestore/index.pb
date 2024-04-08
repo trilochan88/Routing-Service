@@ -54,8 +54,6 @@ Z
 *src/test/scala/domain/model/NodeSpec.scala,d/7/d76d4b51e0b0ba676f53e5ebf5c81d5a4be737c2
 q
 Asrc/test/scala/application/controller/RoutingControllerSpec.scala,0/6/0691faa9de2bb3fd881f804409ea9513e9f17304
-m
-=src/test/scala/infrastructure/adapter/HealthServiceSpec.scala,9/c/9ccee0cd19811e8cfdf497bf8d20e2b6373a72b1
 o
 ?src/main/scala/infrastructure/config/CircuitBreakerConfig.scala,6/b/6b6683473cf9ec891a7d0ea74d9ef5a357d01ad8
 u
@@ -66,3 +64,18 @@ S
 #.idea/sonarlint/issuestore/index.pb,9/f/9fe84ebb15faf917b7def6236dba604453cc61e0
 r
 Bsrc/main/scala/common/exceptions/ExternalHttpFailedException.scala,f/8/f8bcea09170035ecb79daa975c59242c15e369eb
+7
+LICENSE,0/3/0398ccd0f49298b10a3d76a47800d2ebecd49859
+a
+1src/integrationtests/resources/docker-compose.yml,1/0/103426d4ec214f0d05b188f0249d20ee8f7fd8d0
+:
+
+.gitignore,a/5/a5cc2925ca8258af241be7e5b0381edf30266302
+]
+-src/main/scala/domain/model/NodeManager.scala,0/4/04044bc5df5a9c257eb8750a4b5af7690f477644
+_
+/src/main/scala/domain/service/NodeManager.scala,7/2/72ce0d905863be922f2f3f54c8c0d61ad61a8227
+\
+,src/test/scala/domain/service/NodeSpec.scala,8/c/8ccd20d215cd8c7a346b4862c0c7c2a829845f57
+c
+3src/test/scala/domain/service/NodeManagerSpec.scala,f/2/f29bb17f4814571d08535985d6e806c07db9f472
