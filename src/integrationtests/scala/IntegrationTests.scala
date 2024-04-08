@@ -133,7 +133,6 @@ class IntegrationTests
         |}
         |""".stripMargin
     val jsonEntity = HttpEntity(ContentTypes.`application/json`, jsonStr)
-    //http://localhost:8080/ext/update-points
     val normalEndpoint =
       Uri("http://localhost:8080").withPath(Uri.Path("/ext/update-points"))
     val httpPoolSettings = ConnectionPoolSettings(system)
@@ -141,7 +140,7 @@ class IntegrationTests
       .withMaxRetries(3)
       .withMaxOpenRequests(100)
 
-    val requests = (1 to 10).map { _ =>
+    val requests = (1 to 100).map { _ =>
       Http().singleRequest(
         HttpRequest(
           method = HttpMethods.POST,
@@ -154,6 +153,9 @@ class IntegrationTests
     val aggregatedResponse = Future.sequence(requests)
     whenReady(aggregatedResponse, timeout(Span(30, Seconds))) { responses =>
       responses.foreach { response =>
+        println(
+          s"Response ${response.status} body: ${response.entity.dataBytes.toString}"
+        )
         response.status shouldBe StatusCodes.OK
 
       }

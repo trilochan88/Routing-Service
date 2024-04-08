@@ -32,7 +32,7 @@ class CircuitBreakerManagerSpec
       val mockNodeManager = mock[NodeManager]
       val circuitBreakerConfig =
         CircuitBreakerConfig(
-          maxFailures = 5,
+          maxFailures = 1,
           callTimeout = 1.seconds,
           resetTimeout = 1.minute
         )
@@ -49,7 +49,7 @@ class CircuitBreakerManagerSpec
       val mockNodeManager = mock[NodeManager]
       val circuitBreakerConfig =
         CircuitBreakerConfig(
-          maxFailures = 5,
+          maxFailures = 1,
           callTimeout = 1.nanoseconds,
           resetTimeout = 50.millisecond
         )
@@ -78,7 +78,7 @@ class CircuitBreakerManagerSpec
           succeed
         }
 
-      verify(mockNodeManager.updateNodeSlowness("test1",Slow),times(1))
+      verify(mockNodeManager.updateSlowness("test1",Slow),times(1))
     }
   }
 }

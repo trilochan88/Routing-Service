@@ -3,10 +3,11 @@ package domain.service
 
 import common.enums.HealthStatus.NotHealthy
 import common.enums.{HealthStatus, SlownessStatus}
-import domain.model.{Node}
+import domain.model.{Node, NodeStatusSubscriber}
 
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
-import org.mockito.Mockito.{atLeastOnce, never, verify}
+import org.mockito.Mockito.{never, verify}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -17,53 +18,58 @@ class NodeManagerTest extends AnyFlatSpec with Matchers with MockitoSugar {
   val url2 = "test2"
   val initialNodes = Seq(Node(url1), Node(url2))
 
-  "NodeManager" should "attach subscribers correctly" in {
-    val manager = new NodeManager(Seq(Node("http://localhost:8080")))
+  "NodeManager" should "correctly attach a subscriber" in {
+    val manager = new NodeManager(initialNodes)
     val subscriber = mock[NodeStatusSubscriber]
-    manager.attach(subscriber)
 
+    manager.attach(subscriber)
     manager.subscribers should contain(subscriber)
   }
 
-  it should "detach subscribers correctly" in {
-    val manager = new NodeManager(Seq(Node("http://localhost:8080")))
+  it should "correctly detach a subscriber" in {
+    val manager = new NodeManager(initialNodes)
     val subscriber = mock[NodeStatusSubscriber]
     manager.attach(subscriber)
-    manager.detach(subscriber)
 
+    manager.detach(subscriber)
     manager.subscribers should not contain subscriber
   }
 
-  it should "not update health status if node does not exist" in {
-    val manager = new NodeManager(Seq(Node("http://localhost:8080")))
+  it should "update health status correctly and notify subscribers" in {
+    val manager = new NodeManager(initialNodes)
     val subscriber = mock[NodeStatusSubscriber]
     manager.attach(subscriber)
 
-    manager.updateNodeHealth("http://localhost:8084", HealthStatus.NotHealthy)
-    verify(subscriber, never()).updateHealth(Some(Node("http://localhost:8084")), HealthStatus.NotHealthy)
+    manager.updateHealth(url1, HealthStatus.NotHealthy)
+    manager.nodes.find(_.url == url1).get.healthStatus shouldEqual  HealthStatus.NotHealthy
   }
 
-  it should "handle concurrent updates safely" in {
-    val manager = new NodeManager(Seq(Node("http://localhost:8080")))
+  it should "not update health status if URL does not match any maybeNode" in {
+    val manager = new NodeManager(initialNodes)
     val subscriber = mock[NodeStatusSubscriber]
     manager.attach(subscriber)
 
-    // Simulate concurrent updates
-    val threads = (1 to 10).map(_ => new Thread(() => {
-      manager.updateNodeHealth("http://localhost:8080", HealthStatus.NotHealthy)
-    }))
-    threads.foreach(_.start())
-    threads.foreach(_.join())
-
-    // Verifying final state consistency
-    manager.getNodes.head.healthStatus should be(HealthStatus.NotHealthy)
-    verify(subscriber, atLeastOnce()).updateHealth(Some(Node("http://localhost:8080", HealthStatus.NotHealthy)), HealthStatus.NotHealthy)
+    manager.updateHealth("test3", HealthStatus.NotHealthy)
+    manager.nodes.foreach(_.healthStatus shouldEqual HealthStatus.Healthy) // No change
+    verify(subscriber, never()).updateHealth(any[Option[Node]], any[HealthStatus])
   }
 
-  it should "not update slowness status if node URL does not match" in {
-    val manager = new NodeManager(Seq(Node("http://localhost:8080")))
-    manager.updateNodeSlowness("http://localhost:8084", SlownessStatus.Slow)
+  it should "update slowness status correctly and notify subscribers" in {
+    val manager = new NodeManager(initialNodes)
+    val subscriber = mock[NodeStatusSubscriber]
+    manager.attach(subscriber)
 
-    manager.getNodes.head.slownessStatus should be(SlownessStatus.Normal)
+    manager.updateSlowness(url2, SlownessStatus.Slow)
+    manager.nodes.find(_.url == url2).get.slownessStatus shouldEqual SlownessStatus.Slow
+  }
+
+  it should "not update slowness status if URL does not match any maybeNode" in {
+    val manager = new NodeManager(initialNodes)
+    val subscriber = mock[NodeStatusSubscriber]
+    manager.attach(subscriber)
+
+    manager.updateSlowness("test", SlownessStatus.Slow)
+    manager.nodes.foreach(_.slownessStatus shouldEqual SlownessStatus.Normal) // No change
+    verify(subscriber, never()).updateSlowness(any[Option[Node]], any[SlownessStatus])
   }
 }

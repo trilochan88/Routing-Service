@@ -26,7 +26,7 @@ class RoutingControllerSpec
       implicit val httpService: HttpService = mock[HttpService]
       val controller = new RoutingController(mockRoutingService, requestHandler)
 
-      Get("/ext") ~> controller.routes ~> check {
+      Get("/api") ~> controller.routes ~> check {
         status shouldBe StatusCodes.MethodNotAllowed
       }
     }
@@ -41,7 +41,7 @@ class RoutingControllerSpec
       val controller = new RoutingController(mockRoutingService, requestHandler)
 
       Post(
-        "/ext",
+        "/api",
         HttpEntity(ContentTypes.`application/json`, """{"data":"test"}""")
       ) ~> controller.routes ~> check {
         status shouldBe StatusCodes.ServiceUnavailable

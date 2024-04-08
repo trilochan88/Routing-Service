@@ -1,18 +1,26 @@
 package com.ts
 package application.service
 
+import common.enums.{HealthStatus, SlownessStatus}
 import common.exceptions.NoHealthyNodeException
-import domain.model.Node
-import domain.service.*
+import domain.model.{Node, NodeStatusSubscriber}
+import domain.service.RoutingStrategy
 
 import org.slf4j.LoggerFactory
 
-class RoutingService(routingStrategy: RoutingStrategy,nodeManager: NodeManager) {
+import java.util.concurrent.atomic.AtomicReference
+import scala.annotation.tailrec
+import scala.collection.immutable
+
+class RoutingService(routingStrategy: RoutingStrategy, initialNodes: Seq[Node])
+    extends NodeStatusSubscriber {
   private val logger = LoggerFactory.getLogger(getClass)
+  private[application] val nodes: AtomicReference[Map[String, Node]] =
+    new AtomicReference(initialNodes.map(node => node.url -> node).toMap)
   def getNextNode: Either[NoHealthyNodeException, Node] = {
-    val currentNodes = nodeManager.getNodes
+    val currentNodes = nodes.get()
     logger.info(s"Current nodes = ${currentNodes.toString()}")
-    routingStrategy.selectNextNode(currentNodes) match
+    routingStrategy.selectNextNode(currentNodes.values.toSeq) match
       case Some(node) => Right(node)
       case None =>
         logger.error(
@@ -25,7 +33,7 @@ class RoutingService(routingStrategy: RoutingStrategy,nodeManager: NodeManager) 
         )
   }
 
-/*  override def updateHealth(
+  override def updateHealth(
     maybeNode: Option[Node],
     healthStatus: HealthStatus
   ): Unit = {
@@ -42,9 +50,9 @@ class RoutingService(routingStrategy: RoutingStrategy,nodeManager: NodeManager) 
       }
       case _ ⇒ logger.error("No maybeNode found")
 
-  }*/
+  }
 
-  /*override def updateSlowness(
+  override def updateSlowness(
     maybeNode: Option[Node],
     slownessStatus: SlownessStatus
   ): Unit = {
@@ -90,5 +98,5 @@ class RoutingService(routingStrategy: RoutingStrategy,nodeManager: NodeManager) 
     }
 
     attemptUpdate()
-  }*/
+  }
 }
