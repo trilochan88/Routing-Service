@@ -4,13 +4,16 @@ package domain.service
 import common.enums.{HealthStatus, SlownessStatus}
 import domain.model.{Node, NodeStatusSubscriber}
 
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
+import scala.jdk.CollectionConverters._
 
 class NodeManager(initialNodes: Seq[Node]) {
   private val lock = new ReentrantLock()
-  private[service] var nodes = initialNodes
+  private val nodeMap: ConcurrentHashMap[String, Node] =
+    new ConcurrentHashMap[String, Node]()
   private[service] var subscribers: List[NodeStatusSubscriber] = List()
-
+  initialNodes.foreach(node ⇒ nodeMap.putIfAbsent(node.url, node))
   def attach(subscriber: NodeStatusSubscriber): Unit = {
     lock.lock()
     try {
@@ -18,6 +21,10 @@ class NodeManager(initialNodes: Seq[Node]) {
     } finally {
       lock.unlock()
     }
+  }
+  
+  def getNodes(): Seq[Node] = {
+    nodeMap.values().asScala.toSeq
   }
 
   def detach(subscriber: NodeStatusSubscriber): Unit = {
@@ -30,22 +37,19 @@ class NodeManager(initialNodes: Seq[Node]) {
   }
 
   def updateHealth(url: String, status: HealthStatus): Unit = {
-    lock.lock()
-    try {
-      nodes = nodes.map(node => if (node.url == url) node.copy(healthStatus = status) else node)
-      subscribers.foreach(_.updateHealth(nodes.find(_.url == url), status))
-    } finally {
-      lock.unlock()
-    }
+    nodeMap.computeIfPresent(
+      url,
+      (_, current) ⇒ current.copy(healthStatus = status)
+    )
+    subscribers.foreach(_.updateHealth(Option(nodeMap.get(url)), status))
   }
 
   def updateSlowness(url: String, status: SlownessStatus): Unit = {
-    lock.lock()
-    try {
-      nodes = nodes.map(node => if (node.url == url) node.copy(slownessStatus = status) else node)
-      subscribers.foreach(_.updateSlowness(nodes.find(_.url == url), status))
-    } finally {
-      lock.unlock()
-    }
+    nodeMap.computeIfPresent(
+      url,
+      (_, current) ⇒ current.copy(slownessStatus = status)
+    )
+    subscribers.foreach(_.updateSlowness(Option(nodeMap.get(url)), status))
   }
+
 }
