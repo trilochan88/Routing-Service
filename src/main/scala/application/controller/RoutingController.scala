@@ -3,10 +3,11 @@ package application.controller
 
 import application.service.RoutingService
 import domain.service.RequestHandler
+import infrastructure.validators.JsonValidator
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{HttpMethods, StatusCodes}
-import akka.http.scaladsl.server.Directives.{complete, extractRequest, extractRequestEntity, onComplete, path, pathPrefix}
+import akka.http.scaladsl.server.Directives.{complete, extractRequest, extractRequestEntity, onComplete, pathPrefix}
 import akka.http.scaladsl.server.Route
 
 import scala.concurrent.ExecutionContext
@@ -22,6 +23,9 @@ class RoutingController(
           case HttpMethods.POST =>
             extractRequestEntity { entity =>
               {
+                JsonValidator.isValidJson(entity).recover { ex ⇒
+                  complete(StatusCodes.BadRequest, ex.getMessage)
+                }
                 routingService.getNextNode match
                   case Left(ex) =>
                     complete(StatusCodes.ServiceUnavailable, ex.getMessage)

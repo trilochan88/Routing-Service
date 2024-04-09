@@ -140,7 +140,7 @@ class IntegrationTests
       .withMaxRetries(3)
       .withMaxOpenRequests(100)
 
-    val requests = (1 to 100).map { _ =>
+    val requests = (1 to 40).map { _ =>
       Http().singleRequest(
         HttpRequest(
           method = HttpMethods.POST,

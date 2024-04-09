@@ -20,7 +20,7 @@ import scala.concurrent.duration.*
  * @param nodes - list of configured servers
  * @param system
  */
-class HealthService(healthConfig: HealthConfig, nodeManager: NodeManager, nodes: Seq[Node])(implicit
+class HealthService(healthConfig: HealthConfig, nodeManager: NodeManager)(implicit
   system: ActorSystem
 ) {
   private val logger: Logger = LoggerFactory.getLogger(getClass)
@@ -32,7 +32,7 @@ class HealthService(healthConfig: HealthConfig, nodeManager: NodeManager, nodes:
       initialDelay = 0.seconds,
       healthConfig.interval
     ) { () =>
-      nodes.foreach(checkHealth)
+      nodeManager.getNodes().foreach(checkHealth)
     }
   }
 

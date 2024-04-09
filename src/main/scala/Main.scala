@@ -45,12 +45,11 @@ object Main extends App {
   )
   private val routingStrategy: RoutingStrategy = RoundRobinStrategy()
   private val routingService: RoutingService =
-    RoutingService(routingStrategy, nodes)
+    RoutingService(routingStrategy, nodeManager)
   private val monitoringService = MonitoringService()
-  nodeManager.attach(routingService)
   nodeManager.attach(monitoringService)
   private val healthService =
-    new HealthService(healthConfig, nodeManager, nodes)
+    new HealthService(healthConfig, nodeManager)
   healthService.startChecking()
   private val routes: Route = HealthCheckController().routes ~
     RoutingController(routingService, requestHandler)(
