@@ -45,10 +45,10 @@ class HealthService(healthConfig: HealthConfig, nodeManager: NodeManager)(implic
       Http().singleRequest(HttpRequest(uri = healthCheckUri), settings = httpPoolSettings)
       .map {
         case HttpResponse(StatusCodes.OK, _, _, _) =>
-          logger.info(s"Node is healthy ${node.url}")
+       //   logger.info(s"Node is healthy ${node.url}")
           nodeManager.updateHealth(node.url, Healthy)
         case _ =>
-          logger.error(s"Node is not healthy ${node.url}")
+       //   logger.error(s"Node is not healthy ${node.url}")
           nodeManager.updateHealth(node.url,NotHealthy)
       }
       .recover { case ex =>

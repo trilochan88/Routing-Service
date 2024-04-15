@@ -75,10 +75,6 @@ c
 3src/test/scala/domain/service/NodeManagerSpec.scala,f/2/f29bb17f4814571d08535985d6e806c07db9f472
 g
 7src/main/scala/infrastructure/config/HealthConfig.scala,2/2/2235f56709c0d6893f633ac72d315ab2fdc7131a
-]
--src/main/scala/common/ValidationService.scala,8/2/829a2d05832fd3724a26c55e6cfcf01ed25a975d
-Y
-)src/main/scala/common/JsonValidator.scala,c/2/c2115ffd63f3903a3e7266504d7cf008484d1ad2
 r
 Bsrc/main/scala/common/exceptions/InvalidRequestBodyException.scala,f/0/f0f50983dc2981d68bed957d5e7d0fb74e6bac95
 m
@@ -87,3 +83,9 @@ l
 <src/main/scala/infrastructure/validators/JsonValidator.scala,8/e/8e56ac11956b4666283ec997820fcb93cec349de
 p
 @src/test/scala/infrastructure/validators/JsonValidatorTest.scala,c/a/ca7eea8d1f9c1fb28e6d7bdd4ce7f4a3ee33e403
+R
+"wiremock/mappings/gamer-delay.json,e/a/ea171f36bb0ac72611bdc59390888748810cde17
+S
+#wiremock/mappings/health-check.json,1/6/16a5a0505302c57fc4f82be045dea34350b80267
+T
+$wiremock/mappings/gamer-mapping.json,1/e/1e01fa7eca953ecad917944504e9ccc8dbc9292c

@@ -6,7 +6,7 @@ import domain.model.{Node, NodeStatusSubscriber}
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class NodeManager(initialNodes: Seq[Node]) {
   private val lock = new ReentrantLock()
@@ -22,9 +22,14 @@ class NodeManager(initialNodes: Seq[Node]) {
       lock.unlock()
     }
   }
-  
+
   def getNodes(): Seq[Node] = {
-    nodeMap.values().asScala.toSeq
+    lock.lock();
+    try {
+      nodeMap.values().asScala.toList.map(_.copy())
+    } finally {
+      lock.unlock();
+    }
   }
 
   def detach(subscriber: NodeStatusSubscriber): Unit = {
@@ -37,19 +42,29 @@ class NodeManager(initialNodes: Seq[Node]) {
   }
 
   def updateHealth(url: String, status: HealthStatus): Unit = {
-    nodeMap.computeIfPresent(
-      url,
-      (_, current) ⇒ current.copy(healthStatus = status)
-    )
-    subscribers.foreach(_.updateHealth(Option(nodeMap.get(url)), status))
+    lock.lock();
+    try {
+      nodeMap.computeIfPresent(
+        url,
+        (_, current) ⇒ current.copy(healthStatus = status)
+      )
+      subscribers.foreach(_.updateHealth(Option(nodeMap.get(url)), status))
+    } finally {
+      lock.unlock();
+    }
   }
 
   def updateSlowness(url: String, status: SlownessStatus): Unit = {
-    nodeMap.computeIfPresent(
-      url,
-      (_, current) ⇒ current.copy(slownessStatus = status)
-    )
-    subscribers.foreach(_.updateSlowness(Option(nodeMap.get(url)), status))
+    lock.lock();
+    try {
+      nodeMap.computeIfPresent(
+        url,
+        (_, current) ⇒ current.copy(slownessStatus = status)
+      )
+      subscribers.foreach(_.updateSlowness(Option(nodeMap.get(url)), status))
+    } finally {
+      lock.unlock();
+    }
   }
 
 }

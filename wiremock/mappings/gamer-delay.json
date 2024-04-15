@@ -5,14 +5,11 @@
     "headers": {
       "Content-Type": {
         "equalTo": "application/json"
-      },
-      "Client-Type": {
-        "equalTo": "Delay"
       }
     },
     "bodyPatterns": [
       {
-        "equalToJson": "{\"game\":\"Mobile\", \"gamerID\":\"GYUTDTE\", \"points\":20}",
+        "equalToJson": "{\"game\":\"Mobile Legends\", \"gamerID\":\"GYUTDTE\", \"points\":20}",
         "ignoreExtraElements": true
       }
     ]

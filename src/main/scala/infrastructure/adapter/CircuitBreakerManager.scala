@@ -8,8 +8,10 @@ import infrastructure.config.CircuitBreakerConfig
 
 import akka.actor.ActorSystem
 import akka.pattern.CircuitBreaker
+import akka.util.ConcurrentMultiMap
 import org.slf4j.LoggerFactory
 
+import java.util.concurrent.ConcurrentHashMap
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class CircuitBreakerManager(
@@ -18,12 +20,12 @@ class CircuitBreakerManager(
 )(implicit system: ActorSystem) {
   private val logger = LoggerFactory.getLogger(getClass)
   private val nodeCircuitBreakers
-    : scala.collection.mutable.Map[String, CircuitBreaker] =
-    scala.collection.mutable.Map()
+    : ConcurrentHashMap[String, CircuitBreaker] =
+    new ConcurrentHashMap[String, CircuitBreaker]
 
   def getBreakerForNode(node: Node): CircuitBreaker = {
     val circuitBreaker =
-      nodeCircuitBreakers.getOrElseUpdate(node.url, createNewBreaker(node))
+      nodeCircuitBreakers.computeIfAbsent(node.url, _⇒ createNewBreaker(node))
     circuitBreaker
   }
 

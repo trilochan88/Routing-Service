@@ -1,16 +1,11 @@
 package com.ts
 package application.service
 
-import common.enums.{HealthStatus, SlownessStatus}
 import common.exceptions.NoHealthyNodeException
-import domain.model.{Node, NodeStatusSubscriber}
+import domain.model.Node
 import domain.service.{NodeManager, RoutingStrategy}
 
 import org.slf4j.LoggerFactory
-
-import java.util.concurrent.atomic.AtomicReference
-import scala.annotation.tailrec
-import scala.collection.immutable
 
 class RoutingService(
   routingStrategy: RoutingStrategy,
