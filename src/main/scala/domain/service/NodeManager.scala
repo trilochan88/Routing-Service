@@ -5,46 +5,49 @@ import common.enums.{HealthStatus, SlownessStatus}
 import domain.model.{Node, NodeStatusSubscriber}
 
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.{ReentrantLock, ReentrantReadWriteLock}
+import java.util.concurrent.locks.{ReentrantLock, ReentrantReadWriteLock, StampedLock}
 import scala.jdk.CollectionConverters.*
 
 class NodeManager(initialNodes: Seq[Node]) {
-  private val rwLock = new ReentrantReadWriteLock();
-  private val readLock = rwLock.readLock()
-  private val writeLock = rwLock.writeLock()
+  private val lock = new StampedLock();
   private val nodeMap: ConcurrentHashMap[String, Node] =
     new ConcurrentHashMap[String, Node]()
   private[service] var subscribers: List[NodeStatusSubscriber] = List()
   initialNodes.foreach(node ⇒ nodeMap.putIfAbsent(node.url, node))
   def attach(subscriber: NodeStatusSubscriber): Unit = {
-    writeLock.lock()
+    val stamp = lock.writeLock()
     try {
       subscribers = subscriber :: subscribers
     } finally {
-      writeLock.unlock()
+      lock.unlockWrite(stamp)
     }
   }
 
   def getNodes(): Seq[Node] = {
-    readLock.lock();
-    try {
-      nodeMap.values().asScala.toList.map(_.copy())
-    } finally {
-      readLock.unlock();
+    var stamp    = lock.tryOptimisticRead()
+    var nodeList = nodeMap.values().asScala.toList.map(_.copy())
+    if (!lock.validate(stamp)) {
+      stamp = lock.readLock()
+      try {
+        nodeList = nodeMap.values().asScala.toList.map(_.copy())
+      } finally {
+        lock.unlockRead(stamp)
+      }
     }
+    nodeList
   }
 
   def detach(subscriber: NodeStatusSubscriber): Unit = {
-    writeLock.lock()
+    val stamp = lock.writeLock()
     try {
       subscribers = subscribers.filterNot(_ == subscriber)
     } finally {
-      writeLock.unlock()
+      lock.unlockWrite(stamp)
     }
   }
 
   def updateHealth(url: String, status: HealthStatus): Unit = {
-    writeLock.lock();
+    val stamp = lock.writeLock()
     try {
       nodeMap.computeIfPresent(
         url,
@@ -52,12 +55,12 @@ class NodeManager(initialNodes: Seq[Node]) {
       )
       subscribers.foreach(_.updateHealth(Option(nodeMap.get(url)), status))
     } finally {
-      writeLock.unlock();
+      lock.unlockWrite(stamp)
     }
   }
 
   def updateSlowness(url: String, status: SlownessStatus): Unit = {
-    writeLock.lock();
+    val stamp = lock.writeLock()
     try {
       nodeMap.computeIfPresent(
         url,
@@ -65,7 +68,7 @@ class NodeManager(initialNodes: Seq[Node]) {
       )
       subscribers.foreach(_.updateSlowness(Option(nodeMap.get(url)), status))
     } finally {
-      writeLock.unlock();
+      lock.unlockWrite(stamp)
     }
   }
 
